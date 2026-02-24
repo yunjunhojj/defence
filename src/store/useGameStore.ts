@@ -70,3 +70,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 }));
+
+if (typeof window !== 'undefined') {
+  // @ts-ignore
+  window.__GAME_STORE__ = useGameStore;
+}

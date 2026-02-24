@@ -1,0 +1,21 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+    window.alert = function() { console.log('CHALLENGE_SUCCESS'); };
+</script>
+</head>
+<body>
+<h2 id="greeting">Welcome!</h2>
+<script type="module">
+    const userCode = decodeURIComponent(escape(atob('USER_CODE_TEMPLATE')));
+    const encodedJs = encodeURIComponent(userCode);
+    import('data:text/javascript;charset=utf-8,' + encodedJs).then(module => {
+        if (module.default) {
+            console.log("Returned:", module.default());
+        }
+    }).catch(e => console.error(e));
+</script>
+</body>
+</html>

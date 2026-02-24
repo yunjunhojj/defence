@@ -15,7 +15,7 @@ export function CodeEditor() {
         if (currentProblem) {
             setCode(currentProblem.initialCode);
         }
-    }, [currentProblem?.id, setCode]);
+    }, [currentProblem, setCode]);
 
     const handleRun = () => {
         setStageState('running');

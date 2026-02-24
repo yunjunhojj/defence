@@ -67,10 +67,11 @@ export default function getPayload() {
             {
                 id: 'xss-2',
                 title: 'Stored XSS via Markdown',
-                description: 'Bypass a weak markdown parser to execute a script.',
-                initialCode: `// Problem 2: Stored XSS
-// The forum uses a basic markdown parser that allows some HTML tags.
-// Can you bypass it to execute javascript?
+                description: 'The forum escapes all regular HTML tags to prevent XSS, but uses a custom markdown parser for adding links. Can you exploit the link syntax to execute javascript?',
+                initialCode: `// Problem 2: Stored XSS via Markdown
+// HTML tags like <script> or <img> are escaped by the server.
+// However, markdown links are supported: [link text](url)
+// Bypass the protection to execute alert(1).
 
 export default function getPayload() {
   return "Check out this link: [my site](http://example.com)";
@@ -92,23 +93,37 @@ export default function getPayload() {
                     <h2>Forum Post</h2>
                     <div id="content"></div>
                     <script type="module">
+                        const escapeHTML = (str) => str.replace(/[&<>'"]/g, 
+                            tag => ({
+                                '&': '&amp;',
+                                '<': '&lt;',
+                                '>': '&gt;',
+                                "'": '&#39;',
+                                '"': '&quot;'
+                            }[tag])
+                        );
+
                         const parseMarkdown = (text) => {
-                            // Weak markdown parser
-                            return text.replace(/\\[(.*?)\\]\\((.*?)\\)/g, '<a href="$2">$1</a>');
+                            // 1. Escape HTML to prevent basic XSS
+                            let safeText = escapeHTML(text);
+                            // 2. Parse markdown links (Vulnerable: doesn't check for javascript: protocol)
+                            // Allow balanced parentheses inside URLs by not consuming '(' in the outer matcher.
+                            return safeText.replace(/\\[(.*?)\\]\\(([^()]*(?:\\([^)]*\\)[^()]*)*)\\)/g, '<a href="$2">$1</a>');
                         };
 
-                        const userCode = \`\${USER_CODE_TEMPLATE}\`;
+                        const userCode = \\\`\${USER_CODE_TEMPLATE}\\\`;
                         const encodedJs = encodeURIComponent(userCode);
                         const module = await import('data:text/javascript;charset=utf-8,' + encodedJs);
                         
                         if (module.default) {
-                            const payload = module.default();
+                            const payload = String(module.default());
                             document.getElementById('content').innerHTML = parseMarkdown(payload);
                             
                             // Automatically click all links to simulate user interaction
                             setTimeout(() => {
                                 document.querySelectorAll('a').forEach(a => {
                                     if(a.href.includes('javascript:')) {
+                                        console.log('Evaluating href:', a.href);
                                         // Execute href if it's javascript (Simulation of a user click)
                                          eval(decodeURIComponent(a.href.replace('javascript:', '')));
                                     }

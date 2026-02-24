@@ -15,13 +15,13 @@ export function SandboxPreview() {
 
     useEffect(() => {
         if (stageState === 'running' && iframeRef.current && currentProblem) {
-            // Securely replace the placeholder with user code
-            // Replace backticks and dollar signs to avoid breaking the template literal
-            const safeCode = code.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+            // Encode the code securely before injecting into the template
+            const encodedCode = btoa(unescape(encodeURIComponent(code)));
 
+            // The template expects to safely decode this
             const htmlContent = currentProblem.htmlTemplate.replace(
-                '${USER_CODE_TEMPLATE}',
-                safeCode
+                /\\?`\$\{USER_CODE_TEMPLATE\}\\?`/, // Match exact literal string with or without escape backslashes
+                `decodeURIComponent(escape(atob('${encodedCode}')))`
             );
 
             const blob = new Blob([htmlContent], { type: 'text/html' });

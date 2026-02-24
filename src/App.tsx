@@ -1,6 +1,7 @@
 import { Layout } from './components/Layout';
 import { CodeEditor } from './components/CodeEditor';
 import { SandboxPreview } from './components/SandboxPreview';
+import { AnswerSheetModal } from './components/AnswerSheetModal';
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
         <CodeEditor />
         <SandboxPreview />
       </div>
+      <AnswerSheetModal />
     </Layout>
   );
 }

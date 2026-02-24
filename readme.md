@@ -29,6 +29,16 @@ Stage 2	|SQLi	|로그인 폼에 특정 쿼리를 입력해 인증 우회하기	|
 Stage 3	|CSRF	|비밀번호를 강제로 변경하는 악성 링크/폼 생성하기	|세션 관리 및 토큰 검증의 필요성 인식
 Stage 4	|CORS	|잘못된 도메인 설정으로 인한 데이터 유출 막기	|보안 헤더 및 정책 설정법 학습
 
+> Stage 4까지 개발 완료 
+
+단계	|주제	|상세 미션 내용	|기대 효과
+------
+Stage 5	|IDOR (접근 제어 미흡)	|URL의 ID 값(예: /user/101)을 살짝 바꿔서 타인의 개인정보 훔쳐보기	|권한 검증 로직의 중요성
+Stage 6	|Clickjacking	|투명한 iframe을 버튼 위에 겹쳐서 사용자가 엉뚱한 버튼을 클릭하게 만들기	|X-Frame-Options 헤더 이해
+Stage 7	|Sensitive Data Exposure	|브라우저 Console이나 Network 탭을 뒤져서 숨겨진 API Key나 주석 찾기	|소스 코드 관리 및 환경 변수 보안
+Stage 8	|Open Redirect	|?next=... 파라미터를 조작해 사용자를 피싱 사이트로 유도하기	|리다이렉트 시 화이트리스트 검증
+Stage 9	|Web Storage Security	|LocalStorage에 저장된 민감한 JWT 토큰을 탈취해보기	|HttpOnly 쿠키 vs LocalStorage 차이
+
 
 🛠️ Tech Stack
 Frontend & UI

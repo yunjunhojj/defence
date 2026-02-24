@@ -1,60 +1,28 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { ShieldCheck, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { curriculum } from '../data/curriculum';
 
 export function SandboxPreview() {
-    const { code, stageState, setStageState } = useGameStore();
+    const { code, stageState, setStageState, currentStageId, currentProblemId, markProblemCompleted } = useGameStore();
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
+    const currentProblem = useMemo(() => {
+        const stage = curriculum.find(s => s.id === currentStageId);
+        return stage?.problems.find(p => p.id === currentProblemId);
+    }, [currentStageId, currentProblemId]);
+
     useEffect(() => {
-        if (stageState === 'running' && iframeRef.current) {
-            const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: system-ui, sans-serif; background: #fafafa; color: #333; padding: 2rem; }
-            .comment-card { background: white; padding: 1.5rem; border-radius: 0.75rem; border-left: 4px solid #3b82f6; margin-top: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-            h2 { margin-top: 0; color: #111827; }
-            p { color: #4b5563; }
-          </style>
-          <script>
-            // Intercept alert to send message to parent
-            window.alert = function() {
-              window.parent.postMessage({ type: 'XSS_SUCCESS' }, '*');
-            };
-            window.onerror = function(msg) {
-              window.parent.postMessage({ type: 'XSS_ERROR', message: msg }, '*');
-            }
-          </script>
-        </head>
-        <body>
-          <h2>Guestbook</h2>
-          <p>Leave a comment below:</p>
-          <div id="comments"></div>
-          
-          <script type="module">
-            try {
-              const userCode = \`${code.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
-              const encodedJs = encodeURIComponent(userCode);
-              const dataUri = 'data:text/javascript;charset=utf-8,' + encodedJs;
-              
-              const module = await import(dataUri);
-              if (module.default) {
-                const payload = module.default();
-                const commentsDiv = document.getElementById('comments');
-                
-                // VULNERABLE rendering: using innerHTML directly without sanitization
-                commentsDiv.innerHTML = '<div class="comment-card">' + payload + '</div>';
-              }
-            } catch(e) {
-              window.parent.postMessage({ type: 'XSS_ERROR', message: e.message }, '*');
-            }
-          </script>
-        </body>
-        </html>
-      `;
+        if (stageState === 'running' && iframeRef.current && currentProblem) {
+            // Securely replace the placeholder with user code
+            // Replace backticks and dollar signs to avoid breaking the template literal
+            const safeCode = code.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+
+            const htmlContent = currentProblem.htmlTemplate.replace(
+                '${USER_CODE_TEMPLATE}',
+                safeCode
+            );
 
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
@@ -64,16 +32,22 @@ export function SandboxPreview() {
         } else if (stageState === 'idle') {
             if (iframeRef.current) iframeRef.current.src = 'about:blank';
         }
-    }, [stageState, code]);
+    }, [stageState, code, currentProblem]);
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'XSS_SUCCESS') setStageState('success');
-            else if (event.data?.type === 'XSS_ERROR') setStageState('failure');
+            if (event.data?.type === 'CHALLENGE_SUCCESS') {
+                setStageState('success');
+                markProblemCompleted(currentProblemId);
+            }
+            else if (event.data?.type === 'CHALLENGE_FAILURE') {
+                setStageState('failure');
+                // Could potentially pass event.data.message to display specific error
+            }
         };
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [setStageState]);
+    }, [setStageState, markProblemCompleted, currentProblemId]);
 
     return (
         <div className="flex-1 flex flex-col relative bg-slate-900 min-w-[400px]">

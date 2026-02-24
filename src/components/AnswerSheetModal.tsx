@@ -1,9 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { X, Key } from 'lucide-react';
+import { curriculum } from '../data/curriculum';
+import { useMemo } from 'react';
 
 export function AnswerSheetModal() {
-    const { isAnswerSheetOpen, setAnswerSheetOpen } = useGameStore();
+    const { isAnswerSheetOpen, setAnswerSheetOpen, currentStageId, currentProblemId } = useGameStore();
+
+    const currentStage = useMemo(() => curriculum.find(s => s.id === currentStageId), [currentStageId]);
+    const currentProblem = useMemo(() => currentStage?.problems.find(p => p.id === currentProblemId), [currentStage, currentProblemId]);
+
+    const handleCopy = () => {
+        if (currentProblem?.solutionCode) {
+            navigator.clipboard.writeText(currentProblem.solutionCode);
+        }
+    };
+
+    if (!currentProblem || !currentStage) return null;
 
     return (
         <AnimatePresence>
@@ -26,8 +39,8 @@ export function AnswerSheetModal() {
                                     <Key className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-bold text-white">Stage 1 Solution</h2>
-                                    <p className="text-xs text-slate-400">Cross-Site Scripting (XSS)</p>
+                                    <h2 className="text-lg font-bold text-white">{currentStage.title} Solution</h2>
+                                    <p className="text-xs text-slate-400">{currentProblem.title}</p>
                                 </div>
                             </div>
                             <button
@@ -41,14 +54,8 @@ export function AnswerSheetModal() {
                         <div className="p-6 space-y-6">
                             <div className="space-y-3">
                                 <h3 className="text-sm font-medium text-slate-300">Explanation</h3>
-                                <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 text-sm text-slate-300 leading-relaxed">
-                                    <p>
-                                        The target application uses <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">innerHTML</code> to render the comments without any proper sanitization.
-                                        This allows an attacker to inject arbitrary HTML, including <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">&lt;script&gt;</code> tags or elements with inline event handlers.
-                                    </p>
-                                    <p className="mt-3">
-                                        Because Modern browsers do not execute <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">&lt;script&gt;</code> tags inserted via <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">innerHTML</code>, a robust approach is to use an element like <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">&lt;img&gt;</code> with an erroneous <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">src</code> attribute, chaining the <code className="text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">onerror</code> event to execute JavaScript.
-                                    </p>
+                                <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                    {currentProblem.description}
                                 </div>
                             </div>
 
@@ -57,11 +64,11 @@ export function AnswerSheetModal() {
                                 <div className="relative group">
                                     <pre className="p-4 bg-[#1e1e1e] rounded-lg border border-slate-700 overflow-x-auto text-sm font-mono text-slate-300">
                                         <code className="block text-emerald-400">export default function getPayload() {'{'}</code>
-                                        <code className="block ml-4 text-amber-300">return "&lt;img src=x onerror=alert(1)&gt;";</code>
+                                        <code className="block ml-4 text-amber-300">{currentProblem.solutionCode}</code>
                                         <code className="block text-emerald-400">{'}'}</code>
                                     </pre>
                                     <button
-                                        onClick={() => navigator.clipboard.writeText('return "<img src=x onerror=alert(1)>";')}
+                                        onClick={handleCopy}
                                         className="absolute top-3 right-3 p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-xs font-medium border border-slate-600 shadow-sm"
                                     >
                                         Copy Code

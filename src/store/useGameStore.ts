@@ -31,6 +31,8 @@ const getInitialLocale = (): Locale => {
   if (typeof window !== 'undefined') {
     const stored = window.localStorage.getItem('wda_locale');
     if (stored === 'en' || stored === 'ko') return stored;
+    const browserLang = window.navigator?.language?.toLowerCase() || '';
+    if (browserLang.startsWith('ko')) return 'ko';
   }
   return 'en';
 };

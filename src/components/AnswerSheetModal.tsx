@@ -3,9 +3,12 @@ import { useGameStore } from '../store/useGameStore';
 import { X, Key } from 'lucide-react';
 import { curriculum } from '../data/curriculum';
 import { useMemo } from 'react';
+import { useI18n } from '../i18n/useI18n';
+import { getProblemDescription, getProblemTitle, getStageTitle } from '../i18n/curriculum';
 
 export function AnswerSheetModal() {
     const { isAnswerSheetOpen, setAnswerSheetOpen, currentStageId, currentProblemId } = useGameStore();
+    const { locale, t } = useI18n();
 
     const currentStage = useMemo(() => curriculum.find(s => s.id === currentStageId), [currentStageId]);
     const currentProblem = useMemo(() => currentStage?.problems.find(p => p.id === currentProblemId), [currentStage, currentProblemId]);
@@ -39,8 +42,8 @@ export function AnswerSheetModal() {
                                     <Key className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-bold text-white">{currentStage.title} Solution</h2>
-                                    <p className="text-xs text-slate-400">{currentProblem.title}</p>
+                                    <h2 className="text-lg font-bold text-white">{getStageTitle(currentStage, locale)} {t('solution')}</h2>
+                                    <p className="text-xs text-slate-400">{getProblemTitle(currentProblem, locale)}</p>
                                 </div>
                             </div>
                             <button
@@ -53,14 +56,14 @@ export function AnswerSheetModal() {
 
                         <div className="p-6 space-y-6">
                             <div className="space-y-3">
-                                <h3 className="text-sm font-medium text-slate-300">Explanation</h3>
+                                <h3 className="text-sm font-medium text-slate-300">{t('explanation')}</h3>
                                 <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                    {currentProblem.description}
+                                    {getProblemDescription(currentProblem, locale)}
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <h3 className="text-sm font-medium text-slate-300">Payload</h3>
+                                <h3 className="text-sm font-medium text-slate-300">{t('payload')}</h3>
                                 <div className="relative group">
                                     <pre className="p-4 bg-[#1e1e1e] rounded-lg border border-slate-700 overflow-x-auto text-sm font-mono text-slate-300">
                                         <code className="block text-emerald-400">export default function getPayload() {'{'}</code>
@@ -71,7 +74,7 @@ export function AnswerSheetModal() {
                                         onClick={handleCopy}
                                         className="absolute top-3 right-3 p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-xs font-medium border border-slate-600 shadow-sm"
                                     >
-                                        Copy Code
+                                        {t('copyCode')}
                                     </button>
                                 </div>
                             </div>

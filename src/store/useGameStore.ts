@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { curriculum } from '../data/curriculum';
+import type { Locale } from '../i18n/strings';
 
 export type StageState = 'idle' | 'running' | 'success' | 'failure';
 
@@ -7,6 +8,7 @@ interface GameState {
   code: string;
   stageState: StageState;
   isAnswerSheetOpen: boolean;
+  locale: Locale;
 
   // Curriculum specific state
   currentStageId: string;
@@ -17,6 +19,7 @@ interface GameState {
   setCode: (code: string) => void;
   setStageState: (state: StageState) => void;
   setAnswerSheetOpen: (isOpen: boolean) => void;
+  setLocale: (locale: Locale) => void;
   selectProblem: (stageId: string, problemId: string) => void;
   markProblemCompleted: (problemId: string) => void;
   resetStage: () => void;
@@ -24,11 +27,19 @@ interface GameState {
 
 const defaultStage = curriculum[0];
 const defaultProblem = defaultStage.problems[0];
+const getInitialLocale = (): Locale => {
+  if (typeof window !== 'undefined') {
+    const stored = window.localStorage.getItem('wda_locale');
+    if (stored === 'en' || stored === 'ko') return stored;
+  }
+  return 'en';
+};
 
 export const useGameStore = create<GameState>((set, get) => ({
   code: defaultProblem.initialCode,
   stageState: 'idle',
   isAnswerSheetOpen: false,
+  locale: getInitialLocale(),
 
   currentStageId: defaultStage.id,
   currentProblemId: defaultProblem.id,
@@ -37,6 +48,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   setCode: (code) => set({ code, stageState: 'idle' }),
   setStageState: (state) => set({ stageState: state }),
   setAnswerSheetOpen: (isOpen) => set({ isAnswerSheetOpen: isOpen }),
+  setLocale: (locale) => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('wda_locale', locale);
+    }
+    set({ locale });
+  },
 
   selectProblem: (stageId, problemId) => {
     const stage = curriculum.find(s => s.id === stageId);

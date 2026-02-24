@@ -3,10 +3,12 @@ import { useGameStore } from '../store/useGameStore';
 import { ShieldCheck, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { curriculum } from '../data/curriculum';
+import { useI18n } from '../i18n/useI18n';
 
 export function SandboxPreview() {
     const { code, stageState, setStageState, currentStageId, currentProblemId, markProblemCompleted } = useGameStore();
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const { t } = useI18n();
 
     const currentProblem = useMemo(() => {
         const stage = curriculum.find(s => s.id === currentStageId);
@@ -52,7 +54,7 @@ export function SandboxPreview() {
     return (
         <div className="flex-1 flex flex-col relative bg-slate-900 min-w-[400px]">
             <div className="h-12 border-b border-slate-800 flex items-center px-4 bg-slate-900 shadow-sm shrink-0">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Application</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('targetApplication')}</div>
             </div>
             <div className="flex-1 relative bg-white/5 mx-4 mb-4 mt-4 rounded-lg overflow-hidden border border-slate-800 shadow-2xl">
                 <iframe
@@ -74,15 +76,15 @@ export function SandboxPreview() {
                                 <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 text-emerald-400 ring-4 ring-emerald-500/10">
                                     <ShieldAlert className="w-8 h-8" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Payload Executed!</h3>
+                                <h3 className="text-2xl font-bold text-white mb-2">{t('payloadExecutedTitle')}</h3>
                                 <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                                    You successfully injected a script and triggered the alert function. This is a classic Cross-Site Scripting (XSS) vulnerability.
+                                    {t('payloadExecutedBody')}
                                 </p>
                                 <button
                                     onClick={() => setStageState('idle')}
                                     className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition-colors"
                                 >
-                                    Continue
+                                    {t('continue')}
                                 </button>
                             </div>
                         </motion.div>
@@ -98,12 +100,12 @@ export function SandboxPreview() {
                             <div className="p-1.5 bg-slate-700/50 rounded-md text-slate-400">
                                 <ShieldCheck className="w-4 h-4" />
                             </div>
-                            <div className="flex-1">Target is secure. Payload failed to execute.</div>
+                            <div className="flex-1">{t('failureBody')}</div>
                             <button
                                 onClick={() => setStageState('idle')}
                                 className="text-xs font-semibold px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded transition"
                             >
-                                Dismiss
+                                {t('dismiss')}
                             </button>
                         </motion.div>
                     )}

@@ -1,14 +1,17 @@
 import { Target, CheckCircle2 } from 'lucide-react';
 import { curriculum } from '../data/curriculum';
 import { useGameStore } from '../store/useGameStore';
+import { useI18n } from '../i18n/useI18n';
+import { getProblemTitle, getStageTitle } from '../i18n/curriculum';
 
 export function Sidebar() {
     const { currentStageId, currentProblemId, completedProblems, selectProblem } = useGameStore();
+    const { locale, t } = useI18n();
 
     return (
         <aside className="w-64 border-r border-slate-800 bg-slate-950 flex flex-col shrink-0 z-10 relative">
             <div className="p-4 border-b border-slate-800/50">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Curriculum</h2>
+                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t('curriculum')}</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-3">
                 <nav className="space-y-4">
@@ -27,7 +30,7 @@ export function Sidebar() {
                                     )}
                                     <div className="flex-1 overflow-hidden">
                                         <div className={`text-xs font-bold uppercase tracking-wider ${isStageActive ? 'text-blue-400' : 'text-slate-500'}`}>
-                                            {stage.title}
+                                            {getStageTitle(stage, locale)}
                                         </div>
                                     </div>
                                 </div>
@@ -49,7 +52,7 @@ export function Sidebar() {
                                                     <div className="absolute left-0 top-1/2 -mt-2 w-0.5 h-4 bg-blue-500 rounded-r shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                                                 )}
                                                 <div className="flex-1 overflow-hidden">
-                                                    <div className="text-sm font-medium truncate group-hover:pl-0.5 transition-all">{problem.title}</div>
+                                                    <div className="text-sm font-medium truncate group-hover:pl-0.5 transition-all">{getProblemTitle(problem, locale)}</div>
                                                 </div>
                                                 {isCompleted && (
                                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />

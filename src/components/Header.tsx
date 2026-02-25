@@ -4,7 +4,7 @@ import { useGameStore } from '../store/useGameStore';
 import { useI18n } from '../i18n/useI18n';
 
 export function Header() {
-    const { setAnswerSheetOpen, locale, setLocale } = useGameStore();
+    const { setAnswerSheetOpen, locale, setLocale, clearCompletedProblems } = useGameStore();
     const { t } = useI18n();
     const [, setClickCount] = useState(0);
     const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,6 +42,13 @@ export function Header() {
                 </span>
             </div>
             <div className="ml-auto flex items-center gap-3">
+                <button
+                    onClick={clearCompletedProblems}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
+                    title={t('resetProgress')}
+                >
+                    {t('resetProgress')}
+                </button>
                 <div className="text-xs font-semibold text-slate-400">{t('language')}</div>
                 <div className="flex items-center rounded-full border border-slate-700 bg-slate-900 p-0.5">
                     <button

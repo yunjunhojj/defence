@@ -20,6 +20,7 @@ interface GameState {
   setStageState: (state: StageState) => void;
   setAnswerSheetOpen: (isOpen: boolean) => void;
   setLocale: (locale: Locale) => void;
+  clearCompletedProblems: () => void;
   selectProblem: (stageId: string, problemId: string) => void;
   markProblemCompleted: (problemId: string) => void;
   resetStage: () => void;
@@ -27,6 +28,24 @@ interface GameState {
 
 const defaultStage = curriculum[0];
 const defaultProblem = defaultStage.problems[0];
+const STORAGE_KEY_COMPLETED = 'wda_completed_problems';
+
+const readCompletedProblems = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY_COMPLETED);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeCompletedProblems = (completedProblems: string[]) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(STORAGE_KEY_COMPLETED, JSON.stringify(completedProblems));
+};
 const getInitialLocale = (): Locale => {
   if (typeof window !== 'undefined') {
     const stored = window.localStorage.getItem('wda_locale');
@@ -45,7 +64,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   currentStageId: defaultStage.id,
   currentProblemId: defaultProblem.id,
-  completedProblems: [],
+  completedProblems: readCompletedProblems(),
 
   setCode: (code) => set({ code, stageState: 'idle' }),
   setStageState: (state) => set({ stageState: state }),
@@ -55,6 +74,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       window.localStorage.setItem('wda_locale', locale);
     }
     set({ locale });
+  },
+  clearCompletedProblems: () => {
+    writeCompletedProblems([]);
+    set({ completedProblems: [] });
   },
 
   selectProblem: (stageId, problemId) => {
@@ -72,11 +95,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
-  markProblemCompleted: (problemId) => set((state) => ({
-    completedProblems: state.completedProblems.includes(problemId)
-      ? state.completedProblems
-      : [...state.completedProblems, problemId]
-  })),
+  markProblemCompleted: (problemId) => set((state) => {
+    if (state.completedProblems.includes(problemId)) return state;
+    const next = [...state.completedProblems, problemId];
+    writeCompletedProblems(next);
+    return { completedProblems: next };
+  }),
 
   resetStage: () => {
     const { currentStageId, currentProblemId } = get();

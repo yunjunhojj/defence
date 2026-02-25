@@ -18,6 +18,7 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
         copyCode: 'Copy Code',
         mvpEdition: 'MVP Edition',
         language: 'Language',
+        resetProgress: 'Reset Progress',
     },
     ko: {
         curriculum: '커리큘럼',
@@ -36,5 +37,6 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
         copyCode: '코드 복사',
         mvpEdition: 'MVP 에디션',
         language: '언어',
+        resetProgress: '진행 초기화',
     },
 };
